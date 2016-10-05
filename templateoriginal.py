@@ -1,16 +1,97 @@
 import pygame
 import random
+import math
+# import time
 
 KEY_UP = 273
 KEY_DOWN = 274
 KEY_LEFT = 276
 KEY_RIGHT = 275
-# class Minions(object):
-#     def __init__(self, x, y):
-#         self.x = x
-#         self.y = y
-#         self.speed_x = 5
-#         self.speed_y = 5
+ENTER = 13
+
+class Minions(object):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.speed_x = 5
+        self.speed_y = 5
+
+    def render(self, screen):
+        screen.blit(self.img, (self.x, self.y))
+
+    def update(self, width, height):
+        self.x += self.speedx
+        self.y += self.speedy
+
+        if self.x > width:
+            self.x = 0
+        if self.y > height:
+            self.y = 0
+        if self.x < 0:
+            self.x = width
+        if self.y < 0:
+            self.y = height
+
+    def change_direction(self):
+
+        rand = random.randint(0, 3)
+        self.speedx = 0
+        self.speedy = 0
+        if rand == 0:
+            self.speedy = 5
+        elif rand == 1:
+            self.speedy = -5
+        elif rand == 2:
+            self.speedx = 5
+        else:
+            self.speedx = -5
+
+class Monster(Minions):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.width = 100
+        self.height = 100
+        self.speedx = 0
+        self.speedy = 0
+        self.img = pygame.image.load('images/monster.png').convert_alpha()
+
+
+class Hero(Minions):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.width = 30
+        self.height = 32
+        self.speedx = 0
+        self.speedy = 0
+        self.img = pygame.image.load('images/hero.png').convert_alpha()
+
+    def collides(self, monster):
+        return distance(self)
+
+    def heroupdate(self):
+        self.x += self.speedx
+        self.y += self.speedy
+        if self.x > 450:
+            self.x = 450
+        if self.x < 30:
+            self.x = 30
+        if self.y > 415:
+            self.y = 415
+        if self.y < 30:
+            self.y = 30
+
+class Goblin(Minions):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.width = 30
+        self.height = 32
+        self.speedx = 0
+        self.speedy = 0
+        self.img = pygame.image.load('images/goblin.png').convert_alpha()
+
 def main():
     # declare the size of the canvas
     width = 512
@@ -32,29 +113,28 @@ def main():
     ################################
     # PUT INITIALIZATION CODE HERE #
     ################################
-
+    monster = Monster(140, 115)
+    hero = Hero(250, 250)
+    goblin = Goblin( 350, 350)
 
     bgimg = pygame.image.load('images/background.png').convert_alpha()
 
-    heroimg = pygame.image.load('images/hero.png').convert_alpha()
 
-    monsterimg = pygame.image.load('images/monster.png').convert_alpha()
 
-    monster_x = 250
-    monster_y = 150
-    monsterwidth = 30
-    monsterheight = 32
-    monsterspeedx = 5
-    monsterspeedy = 0
-    hero_x = 230
-    hero_y = 230
-    herospeedx = 4
-    herospeedy = 4
 
+
+
+    pygame.mixer.init()
+    win_sound = pygame.mixer.Sound('sounds/win.wav')
+
+    # now = time.time()
+    # time_till_direction_change = now + 2
 
     change_direction_countdown = 30
     # game loop
     stop_game = False
+    game_over = False
+    game_over_lose = False
 
     while not stop_game:
         # look through user events fired
@@ -63,14 +143,29 @@ def main():
             # PUT EVENT HANDLING CODE HERE #
             ################################
             if event.type == pygame.KEYDOWN:
+                if event.key == ENTER:
+                    game_over = False
+                if event.key == ENTER:
+                    game_over_lose = False
+
+            if event.type == pygame.KEYDOWN:
                 if event.key == KEY_DOWN:
-                    hero_y += 5
+                    hero.speedy += 2
                 elif event.key == KEY_UP:
-                    hero_y -= 5
+                    hero.speedy -= 2
                 elif event.key == KEY_LEFT:
-                    hero_x -= 5
+                    hero.speedx -= 2
                 elif event.key == KEY_RIGHT:
-                    hero_x += 5
+                    hero.speedx += 2
+            if event.type == pygame.KEYUP:
+                if event.key == KEY_DOWN:
+                    hero.speedy = 0
+                elif event.key == KEY_UP:
+                    hero.speedy = 0
+                elif event.key == KEY_LEFT:
+                    hero.speedx = 0
+                elif event.key == KEY_RIGHT:
+                    hero.speedx = 0
             if event.type == pygame.QUIT:
                 # if they closed the window, set stop_game to True
                 # to exit the main loop
@@ -80,10 +175,30 @@ def main():
         # PUT LOGIC TO UPDATE GAME STATE HERE #
         #######################################
         # In the game logic section, check to see if the x position of the monster is greater than the window width, if so, set it back to 0.
+        hero.heroupdate()
 
-        pygame.display.update()
-        monster_x += monsterspeedx
-        monster_y += monsterspeedy
+        if math.sqrt((hero.x - monster.x) ** 2 + (hero.y - monster.y) ** 2) < 32:
+            game_over = True
+
+        if math.sqrt((hero.x - goblin.x) ** 2 + (hero.y - goblin.y) ** 2) < 32:
+            game_over_lose = True
+        # (another way to do the 2 second time interval movement change for the monster)
+        # now = time.time()
+        # if now >= time_till_direction_change:
+        #     time_till_direction_change = now + 1
+        # rand = random.randint(0, 3)
+        # monster.speedx = 0
+        # monster.speedy = 0
+        # if rand == 0:
+        #     monster.speedy = 5
+        # elif rand == 1:
+        #     monster.speedy = -5
+        # elif rand == 2:
+        #     monster.speedx = 5
+        # else:
+        #     monster.speedx = -5
+
+
 
 
         # if monster_x + (monsterwidth * 2) > width:
@@ -94,38 +209,41 @@ def main():
         #     monsterspeedx = -monsterspeedx
         # if monsterspeedy - monsterheight < 0:
         #     monsterspeedy = -monsterspeedy
+        monster.update(512, 480)
+        goblin.update(512, 480)
 
-        if monster_x + monsterspeedx > width:
-            monster_x = 0
-        if monster_y + monsterspeedy > height:
-            monster_y = 0
-        if monster_x + monsterspeedx < 0:
-            monster_x = width
-        if monster_y + monsterspeedy < 0:
-            monster_y = height
 
         change_direction_countdown -= 1
         if change_direction_countdown <= 0:
-            change_direction_countdown = 30
-            rand = random.randint(0, 3)
-            monsterspeedx = 0
-            monsterspeedy = 0
-            if rand == 0:
-                monsterspeedy = 5
-            elif rand == 1:
-                monsterspeedy = -5
-            elif rand == 2:
-                monsterspeedx = 5
-            else:
-                monsterspeedx = -5
+            change_direction_countdown = 60
+            monster.change_direction()
+            goblin.change_direction()
+
 
         ################################
         # PUT CUSTOM DISPLAY CODE HERE #
         ################################
-        screen.blit(bgimg, (0,0))
-        screen.blit(heroimg, (230,230))
-        screen.blit(monsterimg, (monster_x, monster_y))
+        screen.blit(bgimg, (0, 0))
+
+        if game_over:
+            font = pygame.font.Font(None, 25)
+            text = font.render('You Win! Play Again? Hit Enter', True, (0, 0, 0))
+            screen.blit(text, (80, 230))
+            win_sound.play()
+        elif game_over_lose:
+            font = pygame.font.Font(None, 25)
+            text = font.render('You Lose! Play Again? Hit Enter', True, (0, 0, 0))
+            screen.blit(text, (80, 230))
+
+        else:
+            monster.render(screen)
+            hero.render(screen)
+            goblin.render(screen)
         # update the canvas display with the currently drawn frame
+
+
+            # game_over = True
+
         pygame.display.update()
 
         # tick the clock to enforce a max framerate
